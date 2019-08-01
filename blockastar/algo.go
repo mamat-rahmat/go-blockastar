@@ -25,8 +25,20 @@ func initStart(block *Block, start *Cell, lddb LDDB) {
 	}
 }
 
+func initGrid(grid *Grid) {
+	for i := 0; i < grid.R/grid.K; i++ {
+		for j := 0; j < grid.C/grid.K; j++ {
+			grid.Blocks[i][j].index = -1
+			grid.Blocks[i][j].inQueue = false
+			grid.Blocks[i][j].heapvalue = INF
+			grid.Blocks[i][j].ingress = map[*Cell]void{}
+		}
+	}
+}
+
 // Run Block A* Algorithm
-func Run(start *Cell, goal *Cell, lddb LDDB) float64 {
+func Run(grid *Grid, start *Cell, goal *Cell, lddb LDDB) float64 {
+	initGrid(grid)
 	startBlock := initialize(start, lddb)
 	initStart(startBlock, start, lddb)
 	goalBlock := initialize(goal, lddb)
@@ -39,28 +51,31 @@ func Run(start *Cell, goal *Cell, lddb LDDB) float64 {
 	pq := make(BlockPQ, 1)
 	pq[0] = startBlock
 	heap.Init(&pq)
-	// totaltotal := 0
+	// total1 := 0
+	// total2 := 0
 	for pq.Len() > 0 {
 		currBlock := heap.Pop(&pq).(*Block)
 		currBlock.inQueue = false
+		// total1++
+
 		if currBlock.heapvalue >= length {
 			break
 		}
+
 		Y := currBlock.ingress
 		if currBlock == goalBlock {
 			for y := range Y {
 				length = math.Min(length, y.g+lddb[y][goal])
 			}
 		}
-		total := 0
 		for _, side := range currBlock.sides {
 			nextBlock := side.neighbour
 			newheapvalue := INF
 			for _, x := range side.egress {
 				xin := x.in
 				for y := range Y {
+					// total2++
 					xin.g = math.Min(xin.g, y.g+lddb[y][xin])
-					total++
 				}
 				for _, xout := range x.out {
 					newxoutg := xin.g + xin.Dist(xout)
@@ -83,5 +98,7 @@ func Run(start *Cell, goal *Cell, lddb LDDB) float64 {
 		}
 		currBlock.ingress = map[*Cell]void{}
 	}
+	// fmt.Println("blocks : ", total1)
+	// fmt.Println("nodes : ", total2)
 	return length
 }
